@@ -22,42 +22,35 @@ mov cl, 0x00
 int 0x10
 
 start:
-	mov al, 0x07
+	mov ax, 0x00
 	call clear_screen
 
-call sign_handler
-;mov al, 0x03
-;mov di, [points]
-;movzx cx, [lens]
-;call draw_horizontal_line_negative
-;mov di, [points + 2]
-;mov cx, [lens + 1]
-;call draw_vertical_line_negative
+mov al, 0x02
+mov di, [points]
+mov si, lens
+call draw_series_hstart
+mov di, [points]
+call draw_series_vstart
 jmp exit
 
-sign_handler: ;cx=sign
-	mov al, 0x03
-	mov di, [points]
-	movzx cx, [signs]
-	jcxz positive  ;jmp if cx==0
-	negative:
-	movzx cx, [lens] 
-	call draw_horizontal_line_negative
-	ret
-	positive:
-	movzx cx, [lens]
+draw_series_hstart:
+	movzx cx, [si]
+	jcxz return
 	call draw_horizontal_line
+	inc si
+draw_series_vstart:
+	movzx cx, [si]
+	jcxz return 
+	call draw_vertical_line
+	inc si
+	loop draw_series_hstart
+
+return:
+	inc si
 	ret
 	
 draw_horizontal_line: ;di=start, cx=len
-	mov al, 0x03
 	rep stosb
-	ret
-
-draw_horizontal_line_negative:
-	mov [es:di], al
-	dec di
-	loop draw_horizontal_line_negative
 	ret
 	
 draw_vertical_line: ;di=start, cx=len
@@ -66,14 +59,6 @@ draw_vertical_line: ;di=start, cx=len
 	add di, 320
 	cmp cx, 0
 	jne draw_vertical_line
-	ret
-
-draw_vertical_line_negative:
-	mov [es:di], al
-	dec cx
-	add di, 320
-	cmp cx, 0
-	jne draw_vertical_line_negative
 	ret
 
 draw_pixel: ;al=color, bx=y, cx=x
@@ -93,13 +78,10 @@ exit:
 	jmp exit
 
 points:
-	dw 50*320+190, 50*320+190
-
+	dw 20*320+50, 20*320+50
+	
 lens:
-	db 140, 40
-
-signs: 
-	db 1,0
+	db 140,120,80,40,0,40,100,120,120,0
 
 times 510-($-$$) db 0
 dw 0xAA55
