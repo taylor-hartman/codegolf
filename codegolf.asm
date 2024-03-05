@@ -1,10 +1,15 @@
 [ORG 0x7c00]
 
+ball_x: equ 0
+ball_y: equ 2
+ball_xs: equ 4
+ball_ys: equ 6
+
 ;SETUP STACK
-mov ax, 0x9000
+xor ax, ax
 mov ss, ax
-mov ax, 0xFFFF
-mov sp, ax
+mov sp, 0x9c00
+mov bp, sp
 
 ;point es to video memory
 mov ax, 0xA000
@@ -24,7 +29,11 @@ int 0x10
 start:
 	mov ax, 0x00
 	call clear_screen
-
+	mov word [bp+ball_x], 60
+	mov word [bp+ball_y], 40
+	mov word [bp+ball_xs], 1
+	mov word [bp+ball_ys], 1
+		
 mov al, 0x02
 mov di, [points]
 mov si, lens
@@ -32,19 +41,19 @@ call draw_series_hstart
 mov di, [points]
 call draw_series_vstart
 mov al, 0x0f
-mov bx, 40
-mov cx, 60
 call draw_ball
 jmp exit
 
 draw_series_hstart:
 	movzx cx, [si]
 	jcxz return
+	mov al, 0x30
 	call draw_horizontal_line
 	inc si
 draw_series_vstart:
 	movzx cx, [si]
 	jcxz return 
+	mov al, 0x2f
 	call draw_vertical_line
 	inc si
 	loop draw_series_hstart
@@ -66,27 +75,36 @@ draw_vertical_line: ;di=start, cx=len
 	ret
 
 draw_ball: ;al=color, bx=y, cx=x
+	mov cx, [bp+ball_x]
+	mov bx, [bp+ball_y]
+	add cx, [bp+ball_xs]
+	add bx, [bp+ball_ys] 
+	mov [bp+ball_x], cx
+	mov [bp+ball_y], bx
 	mov al, 0x0f
 	mov di, 320
 	imul di, bx
 	add di, cx
-	push cx	
-	cmp di, [es:di]
-	jne skip
-	
-skip:	mov [es:di], al
+	mov ah, [es:di]
+	cmp ah, 0x2f ;if new position collides x then reverse xs
+	jne y_check
+	neg word [bp+ball_xs]
+	jmp draw_ball
+y_check: ;if new position collides y then reverse ys
+	cmp ah, 0x30
+	jne no_collision
+	neg word [bp+ball_ys]
+	jmp draw_ball
+no_collision: ;if no collision draw the ball	
+	push cx 
+	mov [es:di], al
 	mov cx, [0x046c]
 	inc cx
 	call delay
-	pop cx
 	mov al, 0x00
 	mov [es:di], al
-	inc cx
 	jmp draw_ball	
-
-mov_ball:
-	mov ax, -4
-
+	
 delay:
 	cmp [0x046c], cx
 	jb delay
