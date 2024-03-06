@@ -31,8 +31,8 @@ start:
 	call clear_screen
 	mov word [bp+ball_x], 60
 	mov word [bp+ball_y], 40
-	mov word [bp+ball_xs], 1
-	mov word [bp+ball_ys], 1
+	mov word [bp+ball_xs], 3
+	mov word [bp+ball_ys], 3
 		
 mov al, 0x02
 mov di, [points]
@@ -40,7 +40,22 @@ mov si, lens
 call draw_series_hstart
 mov di, [points]
 call draw_series_vstart
-mov al, 0x0f
+mov di, [points]
+mov si, lens
+add di, 321
+call draw_series_hstart
+mov di, [points]
+add di, 321
+call draw_series_vstart
+
+mov di, [points]
+mov si, lens
+add di, 642
+call draw_series_hstart
+mov di, [points]
+add di, 642
+call draw_series_vstart
+
 call draw_ball
 jmp exit
 
