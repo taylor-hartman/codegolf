@@ -4,6 +4,7 @@ ball_x: equ 0
 ball_y: equ 2
 ball_xs: equ 4
 ball_ys: equ 6
+offset_thing: equ 319
 
 ;SETUP STACK
 xor ax, ax
@@ -34,31 +35,23 @@ start:
 	mov word [bp+ball_xs], 3
 	mov word [bp+ball_ys], 3
 
-mov al, 0x02
-mov bx, 0
-mov di, [points]
-mov si, lens
-call draw_series_hstart
-mov di, [points]
-call draw_series_vstart
-
-add bx, 1
-mov di, [points]
-mov si, lens
-sub di, 319
-call draw_series_hstart
-mov di, [points]
-sub di, 319
-call draw_series_vstart
-
-add bx, 2
-mov di, [points]
-mov si, lens
-sub di, 638
-call draw_series_hstart
-mov di, [points]
-sub di, 638
-call draw_series_vstart
+draw_level:
+	mov bx, 0
+	mov cx, 5
+	mov dx, 0
+draw_level_loop:
+	push cx
+	mov di, [points]
+	mov si, lens
+	sub di, dx
+	call draw_series_hstart
+	mov di, [points]
+	sub di, dx
+	call draw_series_vstart
+	inc bx ;add to the len
+	pop cx
+	add dx, 319
+	loop draw_level_loop
 
 call draw_hole 
 
