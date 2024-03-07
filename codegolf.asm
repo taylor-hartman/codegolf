@@ -4,6 +4,8 @@ ball_x: equ 0
 ball_y: equ 2
 ball_xs: equ 4
 ball_ys: equ 6
+xs_hold: equ 8
+ys_hold: equ 10
 offset_thing: equ 319
 
 ;SETUP STACK
@@ -32,8 +34,20 @@ start:
 	call clear_screen
 	mov word [bp+ball_x], 60
 	mov word [bp+ball_y], 40
-	mov word [bp+ball_xs], 3
-	mov word [bp+ball_ys], 3
+	mov word [bp+ball_xs], 0
+	mov word [bp+ball_ys], 0
+	mov word [bp+xs_hold], -1
+	mov word [bp+ys_hold], -1
+	
+call draw_level
+call draw_hole 
+
+main_loop:
+	call draw_ball
+	call get_input
+	call draw_velocity
+	jmp main_loop
+;--------------------
 
 draw_level:
 	mov bx, 0
@@ -52,11 +66,7 @@ draw_level_loop:
 	pop cx
 	add dx, 319
 	loop draw_level_loop
-
-call draw_hole 
-
-call draw_ball
-jmp exit
+	ret
 
 draw_series_hstart:
 	movzx cx, [si]
@@ -88,7 +98,7 @@ draw_vertical_line: ;di=start, cx=len
 	jne draw_vertical_line
 	ret
 
-draw_ball: ;al=color, bx=y, cx=x
+draw_ball:
 	mov cx, [bp+ball_x]
 	mov bx, [bp+ball_y]
 	add cx, [bp+ball_xs]
@@ -100,24 +110,27 @@ draw_ball: ;al=color, bx=y, cx=x
 	imul di, bx
 	add di, cx
 	mov ah, [es:di]
+	cmp ah, 0x28 ;in hole
+	jne x_check
+	jmp exit
+x_check:
 	cmp ah, 0x2f ;if new position collides x then reverse xs
 	jne y_check
 	neg word [bp+ball_xs]
-	jmp draw_ball
+	ret
 y_check: ;if new position collides y then reverse ys
 	cmp ah, 0x30
 	jne no_collision
 	neg word [bp+ball_ys]
-	jmp draw_ball
-no_collision: ;if no collision draw the ball	
-	push cx 
+	ret
+no_collision: ;if no collision draw the ball	 
 	mov [es:di], al
 	mov cx, [0x046c]
 	inc cx
 	call delay
 	mov al, 0x00
 	mov [es:di], al
-	jmp draw_ball	
+	ret
 	
 delay:
 	cmp [0x046c], cx
@@ -125,17 +138,75 @@ delay:
 	ret
 
 draw_hole:
-	mov cx, 5
+	mov cx, 7
 	mov al, 0x28
 	mov di, [holes]
 draw_hole_loop:
 	push cx
-	mov cx, 5
+	mov cx, 7
 	call draw_horizontal_line
-	add di, 315
+	add di, 313
 	pop cx 
 	loop draw_hole_loop
 	ret
+
+get_input:
+	cmp word [bp+ball_xs], 0
+	jne get_input_end
+	cmp word [bp+ball_ys], 0
+	jne get_input_end
+	in al, 0x60
+get_d:	cmp al, 0x20 ; D key
+	jne get_a
+	mov word bx, [bp+xs_hold]
+	cmp bx, 3
+	jge get_input_end
+	inc bx
+	mov word [bp+xs_hold], bx
+get_a:	cmp al, 0x1e
+	jne get_x
+	mov word bx, [bp+xs_hold]
+	cmp bx, -3 
+	jle get_input_end 
+	dec bx
+	mov word [bp+xs_hold], bx 
+; get_w:	cmp al, 0x11
+; 	jne get_w
+;         mov word bx, [bp+ys_hold]
+;         cmp bx, 3
+;         jge get_input_end
+;         inc bx
+;         mov word [bp+ys_hold], bx
+; get_s:  cmp al, 0x1f
+; 	jne get_x
+;         mov word bx, [bp+ys_hold]
+;         cmp bx, -3
+;         jle get_input_end
+;         dec bx
+;         mov word [bp+ys_hold], bx	
+get_x:	cmp al, 0x21
+	jne get_input_end
+	mov word bx, [bp+xs_hold]
+	mov [bp+ball_xs], bx
+	mov word bx, [bp+ys_hold]
+	mov [bp+ball_ys], bx	
+	get_input_end:
+	ret
+
+draw_velocity:
+	mov cx, [bp+ball_x]
+        mov bx, [bp+ball_y]
+        mov di, 320
+        imul di, bx
+        add di, cx
+	inc di
+        mov cx, [bp+xs_hold]
+	mov al, 5
+	mul cx
+	mov cx, ax ;TODO fix this shit and make velocities bytes 
+	mov al, 0x20
+        call draw_horizontal_line
+        ret	
 	
 clear_screen:
 	mov cx, 320*200
@@ -154,7 +225,7 @@ lens:
 	db 140,120,80,40,0,40,100,120,120,0
 
 holes:
-	dw 160*320+250
+	dw 155*320+250
 times 510-($-$$) db 0
 dw 0xAA55
 	
