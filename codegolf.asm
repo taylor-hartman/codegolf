@@ -33,28 +33,34 @@ start:
 	mov word [bp+ball_y], 40
 	mov word [bp+ball_xs], 3
 	mov word [bp+ball_ys], 3
-		
+
 mov al, 0x02
+mov bx, 0
 mov di, [points]
 mov si, lens
 call draw_series_hstart
 mov di, [points]
-call draw_series_vstart
-mov di, [points]
-mov si, lens
-add di, 321
-call draw_series_hstart
-mov di, [points]
-add di, 321
 call draw_series_vstart
 
+add bx, 1
 mov di, [points]
 mov si, lens
-add di, 642
+sub di, 319
 call draw_series_hstart
 mov di, [points]
-add di, 642
+sub di, 319
 call draw_series_vstart
+
+add bx, 2
+mov di, [points]
+mov si, lens
+sub di, 638
+call draw_series_hstart
+mov di, [points]
+sub di, 638
+call draw_series_vstart
+
+call draw_hole 
 
 call draw_ball
 jmp exit
@@ -67,11 +73,11 @@ draw_series_hstart:
 	inc si
 draw_series_vstart:
 	movzx cx, [si]
-	jcxz return 
+	jcxz return
 	mov al, 0x2f
 	call draw_vertical_line
 	inc si
-	loop draw_series_hstart
+	jmp draw_series_hstart
 
 return:
 	inc si
@@ -124,6 +130,19 @@ delay:
 	cmp [0x046c], cx
 	jb delay
 	ret
+
+draw_hole:
+	mov cx, 5
+	mov al, 0x28
+	mov di, [holes]
+draw_hole_loop:
+	push cx
+	mov cx, 5
+	call draw_horizontal_line
+	add di, 315
+	pop cx 
+	loop draw_hole_loop
+	ret
 	
 clear_screen:
 	mov cx, 320*200
@@ -131,7 +150,7 @@ clear_screen:
 	rep stosb
 	cmp al, 0x07
 	ret
-	
+		
 exit:
 	jmp exit
 
@@ -141,6 +160,8 @@ points:
 lens:
 	db 140,120,80,40,0,40,100,120,120,0
 
+holes:
+	dw 160*320+250
 times 510-($-$$) db 0
 dw 0xAA55
 	
