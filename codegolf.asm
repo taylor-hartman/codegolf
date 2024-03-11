@@ -34,8 +34,8 @@ start:
 	mov word [bp+ball_y], 40
 	mov word [bp+ball_xs], 0
 	mov word [bp+ball_ys], 0
-	mov word [bp+xs_hold], 1
-	mov word [bp+ys_hold], 1
+	mov word [bp+xs_hold], 0
+	mov word [bp+ys_hold], -1
 main_loop:
 	call clear_screen
 	call draw_level
@@ -100,7 +100,7 @@ draw_ball:
 	mov cx, [bp+ball_x]
 	mov bx, [bp+ball_y]
 	add cx, [bp+ball_xs]
-	add bx, [bp+ball_ys] 
+	sub bx, [bp+ball_ys] ;idfk y this is sub and not add, butt it werks 
 	mov [bp+ball_x], cx
 	mov [bp+ball_y], bx
 	mov di, 320
@@ -205,29 +205,34 @@ draw_velocity:
         push di
         mov cx, [bp+xs_hold]
 	cmp cx, 0
-	jge skip_negative
+	jge pos_hor
+	; draw negative velocity indicator horizontal
 	neg cx
 	imul cx, 5
 	sub di, cx
-	jmp do_draw
-skip_negative:
+	jmp draw_hor
+	pos_hor: ;draw positive velocity indicator horizontal
 	imul cx, 5
-do_draw:
+	inc di
+	draw_hor:
 	mov al, 0x20
         call draw_horizontal_line
 	pop di
 	mov cx, [bp+ys_hold]
 	cmp cx, 0
-	jle do_negative
+	je return
+	jl neg_vert
+	; draw positive velocity indicator vertical
 	imul cx, 5
 	mov bx, 320
 	imul bx, cx
 	sub di, bx
-	jmp draw_time
-do_negative:
+	jmp draw_vert_vel
+	neg_vert: ; draw negative velocity indicator vertical
 	neg cx
 	imul cx, 5
-draw_time:
+	add di, 320
+	draw_vert_vel:
 	call draw_vertical_line
 	ret
 	
