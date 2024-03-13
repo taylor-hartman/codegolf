@@ -24,10 +24,10 @@ mov al, 0x13
 int 0x10
 
 ;hidetext cursor
-mov ah, 1
-mov ch, 0x20
-mov cl, 0x00
-int 0x10
+;mov ah, 1
+;mov ch, 0x20
+;mov cl, 0x00
+;int 0x10
 
 start:
 	mov word [bp+ball_x], 60
@@ -35,8 +35,7 @@ start:
 	mov word [bp+ball_xs], 0
 	mov word [bp+ball_ys], 0
 	mov word [bp+xs_hold], 0
-	mov word [bp+ys_hold], -1
-	xor dx, dx
+	mov word [bp+ys_hold], 0
 main_loop:
 	call clear_screen
 	call draw_level
@@ -95,16 +94,20 @@ draw_vertical_line: ;di=start, cx=len
 	jne draw_vertical_line
 	ret
 
+compute_di: ; 
+	mov di, 320
+        imul di, bx
+        add di, cx
+	ret
+
 draw_ball:
 	mov cx, [bp+ball_x]
 	mov bx, [bp+ball_y]
-	add cx, [bp+ball_xs]
-	sub bx, [bp+ball_ys] ;idfk y this is sub and not add, butt it werks 
-	mov [bp+ball_x], cx
-	mov [bp+ball_y], bx
-	mov di, 320
-	imul di, bx
-	add di, cx
+	add cx, word [bp+ball_xs]
+	sub bx, word [bp+ball_ys] ;idfk y this is sub and not add, butt it werks 
+	mov word [bp+ball_x], cx
+	mov word [bp+ball_y], bx
+	call compute_di
 	mov ah, [es:di]
 	cmp ah, 0x28 ;in hole
 	jne x_check
@@ -147,21 +150,12 @@ draw_hole_loop:
 	ret
 
 slow_ball:
-	cmp dx, 25
+	cmp dx, 100
 	jle return
-	cmp word [bp+ball_xs], 0
-	jl slow_x_inc
-	dec word [bp+ball_xs]
-	slow_x_inc:
-	inc word [bp+ball_xs]
-	cmp word [bp+ball_ys], 0
-	jl slow_y_inc
-	dec word [bp+ball_ys]
-	slow_y_inc:	
-	inc word [bp+ball_ys]
+	mov word [bp+ball_xs], 0
+	mov word [bp+ball_ys], 0
 	ret
 	
-
 get_input:
 	cmp word [bp+ball_xs], 0
 	jne get_input_end
@@ -216,9 +210,7 @@ draw_velocity:
         jne return
 	mov cx, [bp+ball_x]
         mov bx, [bp+ball_y]
-        mov di, 320
-        imul di, bx
-        add di, cx
+        call compute_di
         push di
         mov cx, [bp+xs_hold]
 	cmp cx, 0
@@ -246,33 +238,33 @@ draw_velocity:
 	sub di, bx
 	jmp draw_vert_vel
 	neg_vert: ; draw negative velocity indicator vertical
-	neg cx
-	imul cx, 5
+	;neg cx
+	imul cx, -5
 	add di, 320
 	draw_vert_vel:
 	call draw_vertical_line
 	ret
 	
 ;TODO make velocies bytes	
-	
+
 clear_screen:
 	mov al, 0x00
 	mov cx, 320*200
-	mov di, 0
 	rep stosb
 	ret
-		
+
 exit:
 	jmp exit
-
+		
 points:
 	dw 20*320+50, 20*320+50
-	
+		
 lens:
 	db 140,120,80,40,0,40,100,120,120,0
 
 holes:
 	dw 155*320+250
+
 times 510-($-$$) db 0
 dw 0xAA55
 	
