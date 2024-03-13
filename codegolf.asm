@@ -36,6 +36,7 @@ start:
 	mov word [bp+ball_ys], 0
 	mov word [bp+xs_hold], 0
 	mov word [bp+ys_hold], -1
+	xor dx, dx
 main_loop:
 	call clear_screen
 	call draw_level
@@ -44,25 +45,24 @@ main_loop:
 	call get_input
 	call draw_velocity
 	call delay
+	call slow_ball
 	jmp main_loop
 ;--------------------
 
 draw_level:
-	mov bx, 0
 	mov cx, 5
-	mov dx, 0
+	mov bx, 0
 draw_level_loop:
 	push cx
 	mov di, [points]
 	mov si, lens
-	sub di, dx
+	sub di, bx
 	call draw_series_hstart
 	mov di, [points]
-	sub di, dx
+	sub di, bx
 	call draw_series_vstart
-	inc bx ;add to the len
 	pop cx
-	add dx, 319
+	add bx, 319 ; mov
 	loop draw_level_loop
 	ret
 
@@ -79,7 +79,6 @@ draw_series_vstart:
 	call draw_vertical_line
 	inc si
 	jmp draw_series_hstart
-
 draw_series_end:
 	inc si
 	ret
@@ -131,6 +130,7 @@ delay:
         delay_loop:
 	cmp [0x046c], cx
 	jb delay_loop
+	inc dx 
 	ret
 
 draw_hole:
@@ -145,6 +145,22 @@ draw_hole_loop:
 	pop cx 
 	loop draw_hole_loop
 	ret
+
+slow_ball:
+	cmp dx, 25
+	jle return
+	cmp word [bp+ball_xs], 0
+	jl slow_x_inc
+	dec word [bp+ball_xs]
+	slow_x_inc:
+	inc word [bp+ball_xs]
+	cmp word [bp+ball_ys], 0
+	jl slow_y_inc
+	dec word [bp+ball_ys]
+	slow_y_inc:	
+	inc word [bp+ball_ys]
+	ret
+	
 
 get_input:
 	cmp word [bp+ball_xs], 0
@@ -180,12 +196,13 @@ get_s:  cmp al, 0x1f
 	jle get_input_end
 	dec bx
 	mov word [bp+ys_hold], bx	
-get_x:	cmp al, 0x21
+get_x:	cmp al, 0x2d
 	jne get_input_end
 	mov word bx, [bp+xs_hold]
 	mov [bp+ball_xs], bx
 	mov word bx, [bp+ys_hold]
-	mov [bp+ball_ys], bx	
+	mov [bp+ball_ys], bx
+	mov dx, 0 ;reset ball timer	
 	get_input_end:
 	ret
 
