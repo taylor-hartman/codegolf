@@ -23,12 +23,6 @@ mov ah, 0x00
 mov al, 0x13
 int 0x10
 
-;hidetext cursor
-;mov ah, 1
-;mov ch, 0x20
-;mov cl, 0x00
-;int 0x10
-
 start:
 	mov word [bp+ball_x], 60
 	mov word [bp+ball_y], 40
@@ -36,18 +30,14 @@ start:
 	mov word [bp+ball_ys], 0
 	mov word [bp+xs_hold], 0
 	mov word [bp+ys_hold], 0
-main_loop:
-	call clear_screen
-	call draw_level
-	call draw_hole
-	call draw_ball
-	call get_input
-	call draw_velocity
-	call delay
-	call slow_ball
-	jmp main_loop
-;--------------------
 
+main_loop:
+clear_screen:
+	mov al, 0x00
+	mov cx, 320*200
+	mov di, 0
+	rep stosb
+	
 draw_level:
 	mov cx, 5
 	mov bx, 0
@@ -63,78 +53,6 @@ draw_level_loop:
 	pop cx
 	add bx, 319 ; mov
 	loop draw_level_loop
-	ret
-
-draw_series_hstart:
-	movzx cx, [si]
-	jcxz draw_series_end
-	mov al, 0x30
-	call draw_horizontal_line
-	inc si
-draw_series_vstart:
-	movzx cx, [si]
-	jcxz draw_series_end
-	mov al, 0x2f
-	call draw_vertical_line
-	inc si
-	jmp draw_series_hstart
-draw_series_end:
-	inc si
-	ret
-	
-draw_horizontal_line: ;di=start, cx=len
-	rep stosb
-	ret
-	
-draw_vertical_line: ;di=start, cx=len
-	mov [es:di], al
-	dec cx
-	add di, 320
-	cmp cx, 0
-	jne draw_vertical_line
-	ret
-
-compute_di: ; 
-	mov di, 320
-        imul di, bx
-        add di, cx
-	ret
-
-draw_ball:
-	mov cx, [bp+ball_x]
-	mov bx, [bp+ball_y]
-	add cx, word [bp+ball_xs]
-	sub bx, word [bp+ball_ys] ;idfk y this is sub and not add, butt it werks 
-	mov word [bp+ball_x], cx
-	mov word [bp+ball_y], bx
-	call compute_di
-	mov ah, [es:di]
-	cmp ah, 0x28 ;in hole
-	jne x_check
-	jmp exit
-x_check:
-	cmp ah, 0x2f ;if new position collides x then reverse xs
-	jne y_check
-	neg word [bp+ball_xs]
-	ret
-y_check: ;if new position collides y then reverse ys
-	cmp ah, 0x30
-	jne no_collision
-	neg word [bp+ball_ys]
-	ret
-no_collision: ;if no collision draw the ball	 
-	mov al, 0x0f
-	mov [es:di], al
-	ret
-	
-delay:
-	mov cx, [0x046c]
-        inc cx
-        delay_loop:
-	cmp [0x046c], cx
-	jb delay_loop
-	inc dx 
-	ret
 
 draw_hole:
 	mov cx, 7
@@ -147,15 +65,32 @@ draw_hole_loop:
 	add di, 313
 	pop cx 
 	loop draw_hole_loop
-	ret
 
-slow_ball:
-	cmp dx, 100
-	jle return
-	mov word [bp+ball_xs], 0
-	mov word [bp+ball_ys], 0
-	ret
-	
+draw_ball:
+	mov cx, [bp+ball_x]
+	mov bx, [bp+ball_y]
+	add cx, word [bp+ball_xs]
+	sub bx, word [bp+ball_ys] ;idfk y this is sub and not add, butt it werks 
+	call compute_di
+	mov ah, [es:di]
+	cmp ah, 0x28 ;in hole
+	je exit
+x_check:
+	cmp ah, 0x2f ;if new position collides x then reverse xs
+	jne y_check
+	neg word [bp+ball_xs]
+	jmp draw_velocity
+y_check: ;if new position collides y then reverse ys
+	cmp ah, 0x30
+	jne no_collision
+	neg word [bp+ball_ys]
+	jmp draw_velocity
+no_collision: ;if no collision draw the ball	 
+	mov word [bp+ball_x], cx
+	mov word [bp+ball_y], bx
+	mov al, 0x0f
+	mov [es:di], al
+
 get_input:
 	cmp word [bp+ball_xs], 0
 	jne get_input_end
@@ -198,17 +133,13 @@ get_x:	cmp al, 0x2d
 	mov [bp+ball_ys], bx
 	mov dx, 0 ;reset ball timer	
 	get_input_end:
-	ret
-
-return:
-	ret
 
 draw_velocity:
 	cmp word [bp+ball_xs], 0
-        jne return
+        jne slow_ball
         cmp word [bp+ball_ys], 0
-        jne return
-	mov cx, [bp+ball_x]
+        jne slow_ball
+	mov cx, [bp+ball_x] ;;TODO add to cmpute di
         mov bx, [bp+ball_y]
         call compute_di
         push di
@@ -229,7 +160,7 @@ draw_velocity:
 	pop di
 	mov cx, [bp+ys_hold]
 	cmp cx, 0
-	je return
+	je slow_ball
 	jl neg_vert
 	; draw positive velocity indicator vertical
 	imul cx, 5
@@ -238,20 +169,68 @@ draw_velocity:
 	sub di, bx
 	jmp draw_vert_vel
 	neg_vert: ; draw negative velocity indicator vertical
-	;neg cx
 	imul cx, -5
 	add di, 320
 	draw_vert_vel:
 	call draw_vertical_line
+
+slow_ball:
+	cmp dx, 100
+	jle delay
+	mov word [bp+ball_xs], 0
+	mov word [bp+ball_ys], 0
+	
+delay:
+	mov cx, [0x046c]
+        inc cx
+        delay_loop:
+	cmp [0x046c], cx
+	jb delay_loop
+	inc dx 
+	jmp main_loop
+	
+draw_series_hstart:
+	movzx cx, [si]
+	jcxz draw_series_end
+	mov al, 0x30
+	call draw_horizontal_line
+	inc si
+draw_series_vstart:
+	movzx cx, [si]
+	jcxz draw_series_end
+	mov al, 0x2f
+	call draw_vertical_line
+	inc si
+	jmp draw_series_hstart
+draw_series_end:
+	inc si
 	ret
+	
+draw_horizontal_line: ;di=start, cx=len
+	rep stosb
+	ret
+	
+draw_vertical_line: ;di=start, cx=len
+	mov [es:di], al
+	dec cx
+	add di, 320
+	cmp cx, 0
+	jne draw_vertical_line
+	ret
+
+compute_di: ; 
+	mov di, 320
+        imul di, bx
+        add di, cx
+	ret
+
+	
+return:
+	ret
+
 	
 ;TODO make velocies bytes	
 
-clear_screen:
-	mov al, 0x00
-	mov cx, 320*200
-	rep stosb
-	ret
 
 exit:
 	jmp exit
