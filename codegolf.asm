@@ -66,31 +66,6 @@ draw_hole_loop:
 	pop cx 
 	loop draw_hole_loop
 
-draw_ball:
-	mov cx, [bp+ball_x]
-	mov bx, [bp+ball_y]
-	add cx, word [bp+ball_xs]
-	sub bx, word [bp+ball_ys] ;idfk y this is sub and not add, butt it werks 
-	call compute_di
-	mov ah, [es:di]
-	cmp ah, 0x28 ;in hole
-	je exit
-x_check:
-	cmp ah, 0x2f ;if new position collides x then reverse xs
-	jne y_check
-	neg word [bp+ball_xs]
-	jmp draw_velocity
-y_check: ;if new position collides y then reverse ys
-	cmp ah, 0x30
-	jne no_collision
-	neg word [bp+ball_ys]
-	jmp draw_velocity
-no_collision: ;if no collision draw the ball	 
-	mov word [bp+ball_x], cx
-	mov word [bp+ball_y], bx
-	mov al, 0x0f
-	mov [es:di], al
-
 get_input:
 	cmp word [bp+ball_xs], 0
 	jne get_input_end
@@ -101,6 +76,7 @@ get_d:	cmp al, 0x20 ; D key
 	jne get_a
 	mov word bx, [bp+xs_hold]
 	cmp bx, 3
+    ;cmp word, [bp+xs_hold]
 	jge get_input_end
 	inc bx
 	mov word [bp+xs_hold], bx
@@ -136,14 +112,14 @@ get_x:	cmp al, 0x2d
 
 draw_velocity:
 	cmp word [bp+ball_xs], 0
-        jne slow_ball
-        cmp word [bp+ball_ys], 0
-        jne slow_ball
-	mov cx, [bp+ball_x] ;;TODO add to cmpute di
-        mov bx, [bp+ball_y]
-        call compute_di
-        push di
-        mov cx, [bp+xs_hold]
+    jne draw_velocity_end
+    cmp word [bp+ball_ys], 0
+    jne draw_velocity_end
+	mov cx, [bp+ball_x]
+    mov bx, [bp+ball_y]
+    call compute_di
+    push di
+    mov cx, [bp+xs_hold]
 	cmp cx, 0
 	jge pos_hor
 	; draw negative velocity indicator horizontal
@@ -153,14 +129,13 @@ draw_velocity:
 	jmp draw_hor
 	pos_hor: ;draw positive velocity indicator horizontal
 	imul cx, 5
-	inc di
 	draw_hor:
 	mov al, 0x20
-        call draw_horizontal_line
+    call draw_horizontal_line
 	pop di
 	mov cx, [bp+ys_hold]
 	cmp cx, 0
-	je slow_ball
+	je draw_velocity_end
 	jl neg_vert
 	; draw positive velocity indicator vertical
 	imul cx, 5
@@ -170,9 +145,35 @@ draw_velocity:
 	jmp draw_vert_vel
 	neg_vert: ; draw negative velocity indicator vertical
 	imul cx, -5
-	add di, 320
 	draw_vert_vel:
 	call draw_vertical_line
+    draw_velocity_end:
+
+draw_ball:
+	mov cx, [bp+ball_x]
+	mov bx, [bp+ball_y]
+	add cx, word [bp+ball_xs]
+	sub bx, word [bp+ball_ys] ;idfk y this is sub and not add, butt it werks 
+	call compute_di
+	mov ah, [es:di]
+	cmp ah, 0x28 ;in hole
+	je exit
+x_check:
+	cmp ah, 0x2f ;if new position collides x then reverse xs
+	jne y_check
+	neg word [bp+ball_xs]
+	jmp end_draw_ball
+y_check: ;if new position collides y then reverse ys
+	cmp ah, 0x30
+	jne no_collision
+	neg word [bp+ball_ys]
+	jmp end_draw_ball
+no_collision: ;if no collision draw the ball	 
+	mov word [bp+ball_x], cx
+	mov word [bp+ball_y], bx
+	mov al, 0x0f
+	mov [es:di], al
+    end_draw_ball:
 
 slow_ball:
 	cmp dx, 100
@@ -187,8 +188,11 @@ delay:
 	cmp [0x046c], cx
 	jb delay_loop
 	inc dx 
-	jmp main_loop
 	
+jmp main_loop
+
+;---Helper Functions---
+
 draw_series_hstart:
 	movzx cx, [si]
 	jcxz draw_series_end
