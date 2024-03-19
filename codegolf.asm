@@ -74,33 +74,24 @@ get_input:
 	in al, 0x60
 get_d:	cmp al, 0x20 ; D key
 	jne get_a
-	mov word bx, [bp+xs_hold]
-	cmp bx, 3
-    ;cmp word, [bp+xs_hold]
+    cmp word [bp+xs_hold], 3
 	jge get_input_end
-	inc bx
-	mov word [bp+xs_hold], bx
+    inc word [bp+xs_hold]
 get_a:	cmp al, 0x1e
 	jne get_w
-	mov word bx, [bp+xs_hold]
-	cmp bx, -3 
-	jle get_input_end 
-	dec bx
-	mov word [bp+xs_hold], bx
+	cmp word [bp+xs_hold], -3
+    jle get_input_end 
+	dec word [bp+xs_hold]
 get_w:	cmp al, 0x11
 	jne get_s
-	mov word bx, [bp+ys_hold]
-	cmp bx, 3
+	cmp word [bp+ys_hold], 3
 	jge get_input_end
-	inc bx
-	mov word [bp+ys_hold], bx
+	inc word [bp+ys_hold]
 get_s:  cmp al, 0x1f
 	jne get_x
-	mov word bx, [bp+ys_hold]
-	cmp bx, -3
+	cmp word [bp+ys_hold], -3
 	jle get_input_end
-	dec bx
-	mov word [bp+ys_hold], bx	
+	dec word [bp+ys_hold]	
 get_x:	cmp al, 0x2d
 	jne get_input_end
 	mov word bx, [bp+xs_hold]
