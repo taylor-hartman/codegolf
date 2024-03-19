@@ -6,18 +6,17 @@ ball_xs: equ 4
 ball_ys: equ 6
 xs_hold: equ 8
 ys_hold: equ 10
-offset_thing: equ 319
 
+;irdk if this is necissary
 ;SETUP STACK
-xor ax, ax
-mov ss, ax
-mov sp, 0x9c00
-mov bp, sp
+;xor ax, ax
+;mov ss, ax
+;mov sp, 0x9c00
+;mov bp, sp
 
 ;point es to video memory
 mov ax, 0xA000
 mov es, ax
-mov ah, 0x01
 ;switch to video mode 0x13
 mov ah, 0x00
 mov al, 0x13
@@ -35,7 +34,7 @@ main_loop:
 clear_screen:
 	xor al, al
 	mov cx, 320*200
-	mov di, 0 ;idky exactly but this has to be here, ig there is no overflow
+	xor di, di ;idky exactly but this has to be here, ig there is no overflow
 	rep stosb
 	
 draw_level:
@@ -51,7 +50,7 @@ draw_level_loop:
 	sub di, bx
 	call draw_series_vstart
 	pop cx
-	add bx, 319 ; mov
+	add bx, 319
 	loop draw_level_loop
 
 draw_hole:
@@ -174,8 +173,8 @@ slow_ball:
 	
 delay:
 	mov cx, [0x046c]
-        inc cx
-        delay_loop:
+    inc cx
+    delay_loop:
 	cmp [0x046c], cx
 	jb delay_loop
 	inc dx 
@@ -215,17 +214,9 @@ draw_vertical_line: ;di=start, cx=len
 
 compute_di: ; 
 	mov di, 320
-        imul di, bx
-        add di, cx
+    imul di, bx
+    add di, cx
 	ret
-
-	
-return:
-	ret
-
-	
-;TODO make velocies bytes	
-
 
 exit:
 	jmp exit
