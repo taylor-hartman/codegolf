@@ -33,14 +33,14 @@ start:
 
 main_loop:
 clear_screen:
-	mov al, 0x00
+	xor al, al
 	mov cx, 320*200
-	mov di, 0
+	mov di, 0 ;idky exactly but this has to be here, ig there is no overflow
 	rep stosb
 	
 draw_level:
 	mov cx, 5
-	mov bx, 0
+	xor bx, bx
 draw_level_loop:
 	push cx
 	mov di, [points]
@@ -98,7 +98,7 @@ get_x:	cmp al, 0x2d
 	mov [bp+ball_xs], bx
 	mov word bx, [bp+ys_hold]
 	mov [bp+ball_ys], bx
-	mov dx, 0 ;reset ball timer	
+	xor dx, dx ;reset ball timer	
 	get_input_end:
 
 draw_velocity:
