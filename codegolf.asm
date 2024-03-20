@@ -39,24 +39,28 @@ clear_screen:
 	mov cx, 320*200
 	xor di, di ;idky exactly but this has to be here, ig there is no overflow
 	rep stosb
-	
+
+;each level is comprised of multiple series
+;each series is defined by a start point and a list of line lengths
+;lines are drawn in alternating order horizontal -> vertical -> horiztonal ...
+;series start with alternating line types horizontal -> vertical -> horiztonal ...
 draw_level:
 	mov cx, 5 ;thiccness of border lines
 	xor bx, bx
 draw_level_loop:
 	push cx
-	mov di, [points]
     mov si, len_offsets ;bx is address of current level offset
     add si, word [si+level] ;bx is address of beginning off offset data
     movzx si, byte[si] ; si is the current level offset
     add si, lens ; si is address of begining of list of lens for current level 
+    mov di, [points]
     sub di, bx ;offset the start of the line horizontally
 	call draw_series_hstart
 	mov di, [points]
-    sub di, bx
+    sub di, bx ;offset the start of the line horizontally
 	call draw_series_vstart
 	pop cx
-	add bx, 319
+	add bx, 319 ;offset start of the line vertically
 	loop draw_level_loop
 
 draw_hole:
@@ -190,15 +194,15 @@ jmp main_loop
 ;---Helper Functions---
 
 draw_series_hstart:
-	movzx cx, [si]
-	jcxz draw_series_end
-	mov al, 0x30
+	movzx cx, [si] ; moves first len of series into cx
+	jcxz draw_series_end ;if the len == 0, stop drawing
+	mov al, 0x30 ; color for horizontal lines
 	call draw_horizontal_line
-	inc si
+	inc si ;point to next length in series
 draw_series_vstart:
-	movzx cx, [si]
-	jcxz draw_series_end
-	mov al, 0x2f
+	movzx cx, [si] ;move next len of series to cx
+	jcxz draw_series_end ;if len == 0, stop drawing
+	mov al, 0x2f ;color for vertical line
 	call draw_vertical_line
 	inc si
 	jmp draw_series_hstart
