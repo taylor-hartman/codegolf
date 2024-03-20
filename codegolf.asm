@@ -6,6 +6,7 @@ ball_xs: equ 4
 ball_ys: equ 6
 xs_hold: equ 8
 ys_hold: equ 10
+level: equ 12
 
 ;irdk if this is necissary
 ;SETUP STACK
@@ -18,7 +19,7 @@ ys_hold: equ 10
 mov ax, 0xA000
 mov es, ax
 ;switch to video mode 0x13
-mov ah, 0x00
+cbw ;mov ah, 0
 mov al, 0x13
 int 0x10
 
@@ -29,6 +30,7 @@ start:
 	mov word [bp+ball_ys], 0
 	mov word [bp+xs_hold], 0
 	mov word [bp+ys_hold], 0
+    mov word [bp+level], 2
 
 main_loop:
 clear_screen:
@@ -38,13 +40,17 @@ clear_screen:
 	rep stosb
 	
 draw_level:
-	mov cx, 5
+	mov cx, 5 ;thiccness of border lines
 	xor bx, bx
 draw_level_loop:
 	push cx
 	mov di, [points]
-	mov si, lens
-	sub di, bx
+	;mov si, lens
+    mov si, len_offsets ;si is address of beginning off offset data
+    add si, word [bp+level] ;si is address of current level offset
+    mov si, [si] ; si is the current level offset
+    add si, lens ; si is address of begining of list of lens for current level
+    sub di, bx
 	call draw_series_hstart
 	mov di, [points]
 	sub di, bx
@@ -113,8 +119,7 @@ draw_velocity:
 	cmp cx, 0
 	jge pos_hor
 	; draw negative velocity indicator horizontal
-	neg cx
-	imul cx, 5
+	imul cx, -5
 	sub di, cx
 	jmp draw_hor
 	pos_hor: ;draw positive velocity indicator horizontal
@@ -125,7 +130,7 @@ draw_velocity:
 	pop di
 	mov cx, [bp+ys_hold]
 	cmp cx, 0
-	je draw_velocity_end
+	je draw_velocity_end ;idk what part of the following causes it, but it this is not here the vertical lines do some wrapping shit
 	jl neg_vert
 	; draw positive velocity indicator vertical
 	imul cx, 5
@@ -167,9 +172,10 @@ no_collision: ;if no collision draw the ball
 
 slow_ball:
 	cmp dx, 100
-	jle delay
+	jle slow_ball_end
 	mov word [bp+ball_xs], 0
 	mov word [bp+ball_ys], 0
+    slow_ball_end:
 	
 delay:
 	mov cx, [0x046c]
@@ -222,13 +228,20 @@ exit:
 	jmp exit
 		
 points:
-	dw 20*320+50, 20*320+50
+	dw 20*320+50, 50*320+50 
 		
 lens:
 	db 140,120,80,40,0,40,100,120,120,0
+    db 220,100,0,100,220,0
 
 holes:
 	dw 155*320+250
+
+len_offsets: ;These are bytes because they have to be moved directlty into SI
+    dw 0,10
+
+num_points:
+    db 1,1
 
 times 510-($-$$) db 0
 dw 0xAA55
