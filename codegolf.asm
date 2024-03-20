@@ -23,6 +23,8 @@ cbw ;mov ah, 0
 mov al, 0x13
 int 0x10
 
+mov word [bp+level], 0
+
 start:
 	mov word [bp+ball_x], 60
 	mov word [bp+ball_y], 40
@@ -30,7 +32,6 @@ start:
 	mov word [bp+ball_ys], 0
 	mov word [bp+xs_hold], 0
 	mov word [bp+ys_hold], 0
-    mov word [bp+level], 2
 
 main_loop:
 clear_screen:
@@ -45,15 +46,14 @@ draw_level:
 draw_level_loop:
 	push cx
 	mov di, [points]
-	;mov si, lens
-    mov si, len_offsets ;si is address of beginning off offset data
-    add si, word [bp+level] ;si is address of current level offset
-    mov si, [si] ; si is the current level offset
-    add si, lens ; si is address of begining of list of lens for current level
-    sub di, bx
+    mov si, len_offsets ;bx is address of current level offset
+    add si, word [si+level] ;bx is address of beginning off offset data
+    movzx si, byte[si] ; si is the current level offset
+    add si, lens ; si is address of begining of list of lens for current level 
+    sub di, bx ;offset the start of the line horizontally
 	call draw_series_hstart
 	mov di, [points]
-	sub di, bx
+    sub di, bx
 	call draw_series_vstart
 	pop cx
 	add bx, 319
@@ -152,7 +152,7 @@ draw_ball:
 	call compute_di
 	mov ah, [es:di]
 	cmp ah, 0x28 ;in hole
-	je exit
+	je next_hole
 x_check:
 	cmp ah, 0x2f ;if new position collides x then reverse xs
 	jne y_check
@@ -224,9 +224,10 @@ compute_di: ;
     add di, cx
 	ret
 
-exit:
-	jmp exit
-		
+next_hole:
+    mov word [bp+level], 1
+	jmp start
+
 points:
 	dw 20*320+50, 50*320+50 
 		
@@ -238,7 +239,7 @@ holes:
 	dw 155*320+250
 
 len_offsets: ;These are bytes because they have to be moved directlty into SI
-    dw 0,10
+    db 0,10
 
 num_points:
     db 1,1
