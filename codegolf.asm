@@ -23,7 +23,7 @@ cbw ;mov ah, 0
 mov al, 0x13
 int 0x10
 
-mov word [bp+level], 1
+mov word [bp+level], 0
 
 start:
 	mov word [bp+ball_x], 60
@@ -47,7 +47,7 @@ clear_screen:
 draw_level_big:
     push dx
     mov bx, [bp+level]
-    movzx dx, byte [bx+point_offsets]
+    movzx dx, byte [bx+point_offsets] ;dx is the point_offset for this level
 draw_level_smol:
 	mov cx, 5 ;thiccness of border lines
     xor bx, bx
@@ -58,9 +58,9 @@ draw_level_loop:
     movzx si, byte [si] ; si is the current level offset
     add si, lens ; si is address of begining of list of lens for current level 
     push bx
-    mov bx, dx
-    imul bx, 2
-    mov di, word [points+bx]
+    mov bx, dx ;bx is point_offset
+    imul bx, 2 ;2x because points are words
+    mov di, word [points+bx] ;di is current point
     pop bx
     sub di, bx ;offset the start of the line horizontally
 	call draw_series_hstart
@@ -76,7 +76,8 @@ draw_level_loop:
 	loop draw_level_loop
     inc dx
     mov bx, [bp+level]
-    cmp dx, word [bx+point_offsets+1]
+    movzx bx, byte [bx+point_offsets+1]
+    cmp dx, bx
     je draw_level_end
     jmp draw_level_smol
     draw_level_end:
