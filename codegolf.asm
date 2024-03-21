@@ -23,7 +23,7 @@ cbw ;mov ah, 0
 mov al, 0x13
 int 0x10
 
-mov word [bp+level], 0
+mov word [bp+level], 1
 
 start:
 	mov word [bp+ball_x], 60
@@ -44,24 +44,43 @@ clear_screen:
 ;each series is defined by a start point and a list of line lengths
 ;lines are drawn in alternating order horizontal -> vertical -> horiztonal ...
 ;series start with alternating line types horizontal -> vertical -> horiztonal ...
-draw_level:
+draw_level_big:
+    push dx
+    mov bx, [bp+level]
+    movzx dx, byte [bx+point_offsets]
+draw_level_smol:
 	mov cx, 5 ;thiccness of border lines
-	xor bx, bx
+    xor bx, bx
 draw_level_loop:
 	push cx
-    mov si, len_offsets ;bx is address of current level offset
-    add si, word [si+level] ;bx is address of beginning off offset data
-    movzx si, byte[si] ; si is the current level offset
+    mov si, len_offsets ;si is address of len_offsets
+    add si, word [bp+level] ;si is the address of the current level's len_offset
+    movzx si, byte [si] ; si is the current level offset
     add si, lens ; si is address of begining of list of lens for current level 
-    mov di, [points]
+    push bx
+    mov bx, dx
+    imul bx, 2
+    mov di, word [points+bx]
+    pop bx
     sub di, bx ;offset the start of the line horizontally
 	call draw_series_hstart
-	mov di, [points]
+	push bx
+    mov bx, dx
+    imul bx, 2  
+    mov di, word [points+bx]
+    pop bx
     sub di, bx ;offset the start of the line horizontally
 	call draw_series_vstart
 	pop cx
 	add bx, 319 ;offset start of the line vertically
 	loop draw_level_loop
+    inc dx
+    mov bx, [bp+level]
+    cmp dx, word [bx+point_offsets+1]
+    je draw_level_end
+    jmp draw_level_smol
+    draw_level_end:
+    pop dx
 
 draw_hole:
 	mov cx, 7
@@ -233,20 +252,20 @@ next_hole:
 	jmp start
 
 points:
-	dw 20*320+50, 50*320+50 
+	dw 20*320+50, 90*320+90 
 		
 lens:
 	db 140,120,80,40,0,40,100,120,120,0
-    db 220,100,0,100,220,0
+    db 100,100,0,100,100,0
 
 holes:
 	dw 155*320+250
 
-len_offsets: ;These are bytes because they have to be moved directlty into SI
+len_offsets:
     db 0,10
 
-num_points:
-    db 1,1
+point_offsets:
+    db 0,1,2
 
 times 510-($-$$) db 0
 dw 0xAA55
