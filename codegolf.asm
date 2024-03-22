@@ -23,7 +23,7 @@ cbw ;mov ah, 0
 mov al, 0x13
 int 0x10
 
-mov word [bp+level], 0
+mov word [bp+level], 1
 
 start:
 	mov word [bp+ball_x], 60
@@ -264,11 +264,11 @@ next_hole:
 	jmp start
 
 points:
-	dw 20*320+50, 10*320+35, 40*320+65
+	dw 20*320+50, 10*320+35, 40*320+65, 130*320+160
 		
 lens:
 	db 140,120,80,40,0,40,100,120,120,0
-    db 250,150,0,180,125,0,190,90,0,120,95,30,0
+    db 250,150,0,180,125,0,190,90,0,120,95,30,0,95,0,30,125,0
 
 holes:
 	dw 155*320+250
@@ -277,7 +277,7 @@ len_offsets:
     db 0,10
 
 point_offsets:
-    db 0,2,6
+    db 0,2,8
 
 times 510-($-$$) db 0
 dw 0xAA55
