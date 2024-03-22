@@ -53,7 +53,6 @@ draw_level_smol:
     mov bx, [bp+level]
     movzx dx, byte [bx+point_offsets] ;dx is the point_offset for this level
     pop bx
-    ;mov cx, 5 ;thiccness of border lines
     push cx
 
     mov si, len_offsets ;si is address of len_offsets
@@ -64,35 +63,35 @@ draw_level_smol:
 draw_level_loop_big:
 	;xor bx, bx
     draw_level_loop_smol:
+    
     push bx
     mov bx, dx ;bx is point_offset
     mov di, word [points+bx] ;di is current point
     pop bx
+    
     sub di, bx ;offset the start of the line horizontally
 	call draw_series_hstart
-	push bx
+	
+    push bx
     mov bx, dx
     mov di, word [points+bx]
     pop bx
+    
     sub di, bx ;offset the start of the line horizontally
 	call draw_series_vstart
     add dx, 2
+    
     push bx
     mov bx, [bp+level]
     movzx bx, byte [bx+point_offsets+1]
     cmp dx, bx
     pop bx
-    je skip
-    jmp draw_level_loop_smol
-    skip:
+    
+    jne draw_level_loop_smol
     pop cx
     add bx, 319
     loop draw_level_smol
     pop dx
-
-
-    ;add bx, 319 ;offset start of the line vertically
-	;loop draw_level_loop
 
 draw_hole:
 	mov cx, 7
