@@ -46,17 +46,24 @@ clear_screen:
 ;series start with alternating line types horizontal -> vertical -> horiztonal ...
 draw_level_big:
     push dx
+    mov cx, 5
+    xor bx, bx
+draw_level_smol:
+    push bx 
     mov bx, [bp+level]
     movzx dx, byte [bx+point_offsets] ;dx is the point_offset for this level
-draw_level_smol:
-	mov cx, 5 ;thiccness of border lines
-    xor bx, bx
-draw_level_loop:
-	push cx
+    pop bx
+    ;mov cx, 5 ;thiccness of border lines
+    push cx
+
     mov si, len_offsets ;si is address of len_offsets
     add si, word [bp+level] ;si is the address of the current level's len_offset
     movzx si, byte [si] ; si is the current level offset
     add si, lens ; si is address of begining of list of lens for current level 
+
+draw_level_loop_big:
+	;xor bx, bx
+    draw_level_loop_smol:
     push bx
     mov bx, dx ;bx is point_offset
     mov di, word [points+bx] ;di is current point
@@ -69,17 +76,23 @@ draw_level_loop:
     pop bx
     sub di, bx ;offset the start of the line horizontally
 	call draw_series_vstart
-	pop cx
-	add bx, 319 ;offset start of the line vertically
-	loop draw_level_loop
     add dx, 2
+    push bx
     mov bx, [bp+level]
     movzx bx, byte [bx+point_offsets+1]
     cmp dx, bx
-    je draw_level_end
-    jmp draw_level_smol
-    draw_level_end:
+    pop bx
+    je skip
+    jmp draw_level_loop_smol
+    skip:
+    pop cx
+    add bx, 319
+    loop draw_level_smol
     pop dx
+
+
+    ;add bx, 319 ;offset start of the line vertically
+	;loop draw_level_loop
 
 draw_hole:
 	mov cx, 7
@@ -251,11 +264,11 @@ next_hole:
 	jmp start
 
 points:
-	dw 20*320+50, 90*320+90 
+	dw 20*320+50, 10*320+35, 40*320+65
 		
 lens:
 	db 140,120,80,40,0,40,100,120,120,0
-    db 100,100,0,100,100,0
+    db 250,150,0,180,125,0,190,90,0,120,95,30,0
 
 holes:
 	dw 155*320+250
@@ -264,7 +277,7 @@ len_offsets:
     db 0,10
 
 point_offsets:
-    db 0,2,4
+    db 0,2,6
 
 times 510-($-$$) db 0
 dw 0xAA55
