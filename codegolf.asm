@@ -59,14 +59,12 @@ draw_level_loop:
     add si, lens ; si is address of begining of list of lens for current level 
     push bx
     mov bx, dx ;bx is point_offset
-    imul bx, 2 ;2x because points are words
     mov di, word [points+bx] ;di is current point
     pop bx
     sub di, bx ;offset the start of the line horizontally
 	call draw_series_hstart
 	push bx
     mov bx, dx
-    imul bx, 2  
     mov di, word [points+bx]
     pop bx
     sub di, bx ;offset the start of the line horizontally
@@ -74,7 +72,7 @@ draw_level_loop:
 	pop cx
 	add bx, 319 ;offset start of the line vertically
 	loop draw_level_loop
-    inc dx
+    add dx, 2
     mov bx, [bp+level]
     movzx bx, byte [bx+point_offsets+1]
     cmp dx, bx
@@ -186,7 +184,7 @@ y_check: ;if new position collides y then reverse ys
 	cmp ah, 0x30
 	jne no_collision
 	neg word [bp+ball_ys]
-	jmp end_draw_ball
+jmp end_draw_ball
 no_collision: ;if no collision draw the ball	 
 	mov word [bp+ball_x], cx
 	mov word [bp+ball_y], bx
@@ -266,7 +264,7 @@ len_offsets:
     db 0,10
 
 point_offsets:
-    db 0,1,2
+    db 0,2,4
 
 times 510-($-$$) db 0
 dw 0xAA55
