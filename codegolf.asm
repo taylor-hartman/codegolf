@@ -23,19 +23,20 @@ cbw ;mov ah, 0
 mov al, 0x13
 int 0x10
 
-mov word [bp+level], 1
+mov word [bp+level], 0
 
 start:
-	mov word [bp+ball_x], 60
-	mov word [bp+ball_y], 40
-	mov word [bp+ball_xs], 0
+	mov word [bp+ball_x], 45
+	mov word [bp+ball_y], 30
+reset:
+    mov word [bp+ball_xs], 0
 	mov word [bp+ball_ys], 0
 	mov word [bp+xs_hold], 0
 	mov word [bp+ys_hold], 0
 
 main_loop:
 clear_screen:
-	xor al, al
+	xor al, al ;set color to black
 	mov cx, 320*200
 	xor di, di ;idky exactly but this has to be here, ig there is no overflow
 	rep stosb
@@ -44,11 +45,11 @@ clear_screen:
 ;each series is defined by a start point and a list of line lengths
 ;lines are drawn in alternating order horizontal -> vertical -> horiztonal ...
 ;series start with alternating line types horizontal -> vertical -> horiztonal ...
-draw_level_big:
+draw_level:
     push dx
     mov cx, 5
     xor bx, bx
-draw_level_smol:
+draw_level_loop_outer:
     push bx 
     mov bx, [bp+level]
     movzx dx, byte [bx+point_offsets] ;dx is the point_offset for this level
@@ -59,44 +60,29 @@ draw_level_smol:
     add si, word [bp+level] ;si is the address of the current level's len_offset
     movzx si, byte [si] ; si is the current level offset
     add si, lens ; si is address of begining of list of lens for current level 
-
-draw_level_loop_big:
-	;xor bx, bx
-    draw_level_loop_smol:
-    
-    push bx
-    mov bx, dx ;bx is point_offset
-    mov di, word [points+bx] ;di is current point
-    pop bx
-    
-    sub di, bx ;offset the start of the line horizontally
-	call draw_series_hstart
-	
-    push bx
-    mov bx, dx
-    mov di, word [points+bx]
-    pop bx
-    
-    sub di, bx ;offset the start of the line horizontally
+draw_level_loop_inner:    
+    call set_point 
+	call draw_series_hstart	
+    call set_point 
 	call draw_series_vstart
     add dx, 2
     
     push bx
     mov bx, [bp+level]
-    movzx bx, byte [bx+point_offsets+1]
+    movzx bx, byte [bx+point_offsets+1] ;if the offset is equal to the next lvls offset then we are done
     cmp dx, bx
     pop bx
     
-    jne draw_level_loop_smol
+    jne draw_level_loop_inner
     pop cx
     add bx, 319
-    loop draw_level_smol
+    loop draw_level_loop_outer
     pop dx
 
 draw_hole:
 	mov cx, 7
 	mov al, 0x28
-	mov di, [holes]
+	mov di, 165*320+265
 draw_hole_loop:
 	push cx
 	mov cx, 7
@@ -105,11 +91,13 @@ draw_hole_loop:
 	pop cx 
 	loop draw_hole_loop
 
-get_input:
+not_moving_skip_check:
 	cmp word [bp+ball_xs], 0
-	jne get_input_end
+	jne not_moving_skip_point
 	cmp word [bp+ball_ys], 0
-	jne get_input_end
+	jne not_moving_skip_point
+
+get_input:
 	in al, 0x60
 get_d:	cmp al, 0x20 ; D key
 	jne get_a
@@ -141,10 +129,6 @@ get_x:	cmp al, 0x2d
 	get_input_end:
 
 draw_velocity:
-	cmp word [bp+ball_xs], 0
-    jne draw_velocity_end
-    cmp word [bp+ball_ys], 0
-    jne draw_velocity_end
 	mov cx, [bp+ball_x]
     mov bx, [bp+ball_y]
     call compute_di
@@ -178,6 +162,8 @@ draw_velocity:
 	call draw_vertical_line
     draw_velocity_end:
 
+not_moving_skip_point:
+
 draw_ball:
 	mov cx, [bp+ball_x]
 	mov bx, [bp+ball_y]
@@ -207,8 +193,8 @@ no_collision: ;if no collision draw the ball
 slow_ball:
 	cmp dx, 100
 	jle slow_ball_end
-	mov word [bp+ball_xs], 0
-	mov word [bp+ball_ys], 0
+    xor dx, dx
+    jmp reset
     slow_ball_end:
 	
 delay:
@@ -258,25 +244,31 @@ compute_di: ;
     add di, cx
 	ret
 
+set_point:
+    push bx
+    mov bx, dx ;bx is point_offset
+    mov di, word [points+bx] ;di is current point
+    pop bx
+    sub di, bx ;offset the start of the line horizontally
+    ret
+
 next_hole:
-    mov word [bp+level], 1
+    inc word [bp+level]
 	jmp start
 
 points:
-	dw 20*320+50, 10*320+35, 40*320+65, 130*320+160
-		
-lens:
-	db 140,120,80,40,0,40,100,120,120,0
-    db 250,150,0,180,125,0,190,90,0,120,95,30,0,95,0,30,125,0
+	dw 10*320+30, 10*320+35, 10*320+75, 50*320+115, 10*320+30 
 
-holes:
-	dw 155*320+250
+lens:
+    db 145,140,105,40,0,40,105,140,145,0
+    db 250,180,0,180,250,0,0,140,130,0,130,140,0,60,90,0
+    db 250,180,0,180,250,0
 
 len_offsets:
-    db 0,10
+    db 0,10,26
 
 point_offsets:
-    db 0,2,8
+    db 0,2,8,10
 
 times 510-($-$$) db 0
 dw 0xAA55
