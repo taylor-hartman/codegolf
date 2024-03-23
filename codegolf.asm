@@ -29,10 +29,11 @@ start:
 	mov word [bp+ball_x], 45
 	mov word [bp+ball_y], 30
 reset:
-    mov word [bp+ball_xs], 0
-	mov word [bp+ball_ys], 0
-	mov word [bp+xs_hold], 0
-	mov word [bp+ys_hold], 0
+    xor ax, ax ;less space than moving 0 four times because 0s are words here
+    mov word [bp+ball_xs], ax
+	mov word [bp+ball_ys], ax
+	mov word [bp+xs_hold], ax
+	mov word [bp+ys_hold], ax
 
 main_loop:
 clear_screen:
@@ -104,22 +105,22 @@ get_d:	cmp al, 0x20 ; D key
     cmp word [bp+xs_hold], 3
 	jge get_input_end
     inc word [bp+xs_hold]
-get_a:	cmp al, 0x1e
+get_a:	cmp al, 0x1e ;A key
 	jne get_w
 	cmp word [bp+xs_hold], -3
     jle get_input_end 
 	dec word [bp+xs_hold]
-get_w:	cmp al, 0x11
+get_w:	cmp al, 0x11 ;W key
 	jne get_s
 	cmp word [bp+ys_hold], 3
 	jge get_input_end
 	inc word [bp+ys_hold]
-get_s:  cmp al, 0x1f
+get_s:  cmp al, 0x1f ;S key
 	jne get_x
 	cmp word [bp+ys_hold], -3
 	jle get_input_end
 	dec word [bp+ys_hold]	
-get_x:	cmp al, 0x2d
+get_x:	cmp al, 0x2d ;X key
 	jne get_input_end
 	mov word bx, [bp+xs_hold]
 	mov [bp+ball_xs], bx
