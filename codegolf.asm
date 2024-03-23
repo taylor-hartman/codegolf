@@ -14,7 +14,7 @@ level: equ 12
 ;mov ss, ax
 ;mov sp, 0x9c00
 ;mov bp, sp
-
+xor bp, bp
 ;point es to video memory
 mov ax, 0xA000
 mov es, ax
@@ -32,11 +32,11 @@ start:
 	mov word [bp+ball_x], 55
 	mov word [bp+ball_y], 30
 reset:
-    xor ax, ax ;less space than moving 0 four times because 0s are words here
-    mov word [bp+ball_xs], ax
-	mov word [bp+ball_ys], ax
-	mov word [bp+xs_hold], ax
-	mov word [bp+ys_hold], ax
+    ;xor ax, ax ;less space than moving 0 four times because 0s are words here
+    mov word [bp+ball_xs], bp
+	mov word [bp+ball_ys], bp
+	mov word [bp+xs_hold], bp
+	mov word [bp+ys_hold], bp
 
 main_loop:
 clear_screen:
@@ -96,9 +96,9 @@ draw_hole_loop:
 	loop draw_hole_loop
 
 not_moving_skip_check:
-	cmp word [bp+ball_xs], 0
+	cmp word [bp+ball_xs], bp
 	jne not_moving_skip_point
-	cmp word [bp+ball_ys], 0
+	cmp word [bp+ball_ys], bp
 	jne not_moving_skip_point
 
 get_input:
@@ -138,7 +138,7 @@ draw_velocity:
     call compute_di
     push di
     mov cx, [bp+xs_hold]
-	cmp cx, 0
+	cmp cx, bp
 	jge pos_hor
 	; draw negative velocity indicator horizontal
 	imul cx, -5
@@ -151,7 +151,7 @@ draw_velocity:
     call draw_horizontal_line
 	pop di
 	mov cx, [bp+ys_hold]
-	cmp cx, 0
+	cmp cx, bp
 	je draw_velocity_end ;idk what part of the following causes it, but it this is not here the vertical lines do some wrapping shit
 	jl neg_vert
 	; draw positive velocity indicator vertical
@@ -236,7 +236,7 @@ draw_vertical_line: ;di=start, cx=len
 	mov [es:di], al
 	dec cx
 	add di, 320
-	cmp cx, 0
+	cmp cx, bp
 	jne draw_vertical_line
 	ret
 
