@@ -23,10 +23,13 @@ cbw ;mov ah, 0
 mov al, 0x13
 int 0x10
 
-mov word [bp+level], 0
+mov word [bp+level], -1
+
+level_start:
+    inc word [bp+level]
 
 start:
-	mov word [bp+ball_x], 45
+	mov word [bp+ball_x], 55
 	mov word [bp+ball_y], 30
 reset:
     xor ax, ax ;less space than moving 0 four times because 0s are words here
@@ -173,17 +176,15 @@ draw_ball:
 	call compute_di
 	mov ah, [es:di]
 	cmp ah, 0x28 ;in hole
-	je next_hole
+	je level_start
 x_check:
 	cmp ah, 0x2f ;if new position collides x then reverse xs
 	jne y_check
 	neg word [bp+ball_xs]
-	jmp end_draw_ball
 y_check: ;if new position collides y then reverse ys
 	cmp ah, 0x30
 	jne no_collision
 	neg word [bp+ball_ys]
-jmp end_draw_ball
 no_collision: ;if no collision draw the ball	 
 	mov word [bp+ball_x], cx
 	mov word [bp+ball_y], bx
@@ -252,10 +253,6 @@ set_point:
     pop bx
     sub di, bx ;offset the start of the line horizontally
     ret
-
-next_hole:
-    inc word [bp+level]
-	jmp start
 
 points:
 	dw 10*320+30, 10*320+35, 10*320+75, 50*320+115, 10*320+30 
