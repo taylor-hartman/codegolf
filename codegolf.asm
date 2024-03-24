@@ -7,6 +7,7 @@ ball_ys: equ 6
 xs_hold: equ 8
 ys_hold: equ 10
 level: equ 12
+strokes: equ 14
 
 ;irdk if this is necissary
 ;SETUP STACK
@@ -31,13 +32,13 @@ level_start:
 start:
 	mov word [bp+ball_x], 55
 	mov word [bp+ball_y], 30
+    mov word [bp+strokes], bp
 reset:
     ;xor ax, ax ;less space than moving 0 four times because 0s are words here
     mov word [bp+ball_xs], bp
 	mov word [bp+ball_ys], bp
 	mov word [bp+xs_hold], bp
 	mov word [bp+ys_hold], bp
-
 main_loop:
 clear_screen:
 	xor al, al ;set color to black
@@ -129,7 +130,8 @@ get_x:	cmp al, 0x2d ;X key
 	mov [bp+ball_xs], bx
 	mov word bx, [bp+ys_hold]
 	mov [bp+ball_ys], bx
-	xor dx, dx ;reset ball timer	
+	inc word [bp+strokes]
+    xor dx, dx ;reset ball timer	
 	get_input_end:
 
 draw_velocity:
@@ -196,6 +198,8 @@ slow_ball:
 	cmp dx, 100
 	jle slow_ball_end
     xor dx, dx
+    cmp word [bp+strokes], 3
+    jge start
     jmp reset
     slow_ball_end:
 	
@@ -260,9 +264,9 @@ points:
 lens:
     db 145,140,105,40,0,40,105,140,145,0
     db 250,180,0,180,250,0,0,140,130,0,130,140,0,60,90,0
-    db 250,180,0,180,250,0
+    db 60,0,0
 
-len_offsets:
+len_offsets: 
     db 0,10,26
 
 point_offsets:
