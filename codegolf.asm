@@ -24,7 +24,7 @@ cbw ;mov ah, 0
 mov al, 0x13
 int 0x10
 
-mov word [bp+level], 1
+mov word [bp+level], -1 ;level is inc-ed to 0 directly after
 
 level_start:
     inc word [bp+level]
@@ -45,7 +45,8 @@ main_loop:
 clear_screen:
 	xor al, al ;set color to black
 	mov cx, 320*200
-	rep stosb
+	xor di, di
+    rep stosb
 
 ;each level is comprised of multiple series
 ;each series is defined by a start point and a list of line lengths
@@ -187,10 +188,12 @@ x_check:
 	cmp ah, 0x2f ;if new position collides x then reverse xs
 	jne y_check
 	neg word [bp+ball_xs]
+    jmp end_draw_ball
 y_check: ;if new position collides y then reverse ys
 	cmp ah, 0x30
 	jne no_collision
 	neg word [bp+ball_ys]
+    jmp end_draw_ball
 no_collision: ;if no collision draw the ball	 
 	mov word [bp+ball_x], cx
 	mov word [bp+ball_y], bx
@@ -261,12 +264,12 @@ set_point:
     ret
 
 points:
-	dw 10*320+30,10*320+35,10*320+75,50*320+115,10*320+30,10*320+200,50*320+243
+	dw 10*320+30,10*320+35,10*320+75,50*320+115,10*320+30,10*320+200,30*320+243
 
 lens:
-    db 145,140,105,40,0,40,105,140,145,0
+    db 120,140,130,40,0,40,108,140,142,0
     db 250,180,0,180,250,0,0,140,130,0,130,140,0,60,90,0
-    db 90,40,40,40,40,0,40,50,40,40,40,40,60,125,0,85,180,0,140,0,0,140
+    db 90,140,80,0,40,50,140,205,0,85,180,0,140,0,0,160
 
 len_offsets: 
     db 0,10,26
