@@ -39,11 +39,12 @@ reset:
 	mov word [bp+ball_ys], bp
 	mov word [bp+xs_hold], bp
 	mov word [bp+ys_hold], bp
+timer_reset:
+    xor dx, dx
 main_loop:
 clear_screen:
 	xor al, al ;set color to black
 	mov cx, 320*200
-	xor di, di ;idky exactly but this has to be here, ig there is no overflow
 	rep stosb
 
 ;each level is comprised of multiple series
@@ -97,10 +98,10 @@ draw_hole_loop:
 	loop draw_hole_loop
 
 not_moving_skip_check:
-	cmp word [bp+ball_xs], bp
-	jne not_moving_skip_point
-	cmp word [bp+ball_ys], bp
-	jne not_moving_skip_point
+	cmp word [bp+ball_xs], bp ;if x velocity != 0
+	jne ball_is_moving
+	cmp word [bp+ball_ys], bp ; or if y velocity != 0
+	jne ball_is_moving
 
 get_input:
 	in al, 0x60
@@ -131,7 +132,7 @@ get_x:	cmp al, 0x2d ;X key
 	mov word bx, [bp+ys_hold]
 	mov [bp+ball_ys], bx
 	inc word [bp+strokes]
-    xor dx, dx ;reset ball timer	
+    jmp timer_reset 
 	get_input_end:
 
 draw_velocity:
@@ -167,8 +168,11 @@ draw_velocity:
 	draw_vert_vel:
 	call draw_vertical_line
     draw_velocity_end:
+    jmp skip_inc_bc_ball_still
 
-not_moving_skip_point:
+ball_is_moving:
+    inc dx
+skip_inc_bc_ball_still:
 
 draw_ball:
 	mov cx, [bp+ball_x]
@@ -197,7 +201,6 @@ no_collision: ;if no collision draw the ball
 slow_ball:
 	cmp dx, 100
 	jle slow_ball_end
-    xor dx, dx
     cmp word [bp+strokes], 3
     jge start
     jmp reset
@@ -209,7 +212,6 @@ delay:
     delay_loop:
 	cmp [0x046c], cx
 	jb delay_loop
-	inc dx 
 	
 jmp main_loop
 
@@ -264,7 +266,7 @@ points:
 lens:
     db 145,140,105,40,0,40,105,140,145,0
     db 250,180,0,180,250,0,0,140,130,0,130,140,0,60,90,0
-    db 90,40,40,40,40,0,40,50,40,40,40,40,60,125,0,85,180,0,140,0,0,140,0
+    db 90,40,40,40,40,0,40,50,40,40,40,40,60,125,0,85,180,0,140,0,0,140
 
 len_offsets: 
     db 0,10,26
