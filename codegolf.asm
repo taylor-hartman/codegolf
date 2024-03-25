@@ -1,5 +1,6 @@
 [ORG 0x7c00]
 
+;memory offsets
 ball_x: equ 0
 ball_y: equ 2
 ball_xs: equ 4
@@ -15,7 +16,9 @@ strokes: equ 14
 ;mov ss, ax
 ;mov sp, 0x9c00
 ;mov bp, sp
-xor bp, bp
+
+xor bp, bp ;bp is zero from now on
+
 ;point es to video memory
 mov ax, 0xA000
 mov es, ax
@@ -24,7 +27,10 @@ cbw ;mov ah, 0
 mov al, 0x13
 int 0x10
 
-mov word [bp+level], 0 ;level is inc-ed to 0 directly after
+;screen len is 320x200
+;colors: https://en.wikipedia.org/wiki/Mode_13h
+
+mov word [bp+level], -1 ;level is inc-ed to 0 directly after
 
 level_start:
     inc word [bp+level]
@@ -41,7 +47,8 @@ reset:
 	mov word [bp+ys_hold], bp
 timer_reset:
     xor dx, dx
-main_loop:
+
+main_loop: ;this is looped after every delay
 clear_screen:
 	xor al, al ;set color to black
 	mov cx, 320*200
@@ -52,9 +59,13 @@ clear_screen:
 ;each series is defined by a start point and a list of line lengths
 ;lines are drawn in alternating order horizontal -> vertical -> horiztonal ...
 ;series start with alternating line types horizontal -> vertical -> horiztonal ...
-draw_level:
+;For the level drawing loop:
+;2 series are run (a horizontal and a vertical), then we move to the next point
+;we continue this trend until we have run out of points in the given level
+;at this point we offset the starting point and repeat 5x to make the lines thicc
+draw_level: ;this is run once per main loop
     push dx
-    mov cx, 5
+    mov cx, 5 ;this is the thiccness of the level lines
     xor bx, bx
 draw_level_loop_outer:
     push bx 
@@ -62,24 +73,21 @@ draw_level_loop_outer:
     movzx dx, byte [bx+point_offsets] ;dx is the point_offset for this level
     pop bx
     push cx
-
     mov si, len_offsets ;si is address of len_offsets
     add si, word [bp+level] ;si is the address of the current level's len_offset
     movzx si, byte [si] ; si is the current level offset
     add si, lens ; si is address of begining of list of lens for current level 
-draw_level_loop_inner:    
+draw_level_loop_inner: ;this is run for each 
     call set_point 
 	call draw_series_hstart	
     call set_point 
 	call draw_series_vstart
     add dx, 2
-    
     push bx
     mov bx, [bp+level]
     movzx bx, byte [bx+point_offsets+1] ;if the offset is equal to the next lvls offset then we are done
     cmp dx, bx
     pop bx
-    
     jne draw_level_loop_inner
     pop cx
     add bx, 319
@@ -160,9 +168,9 @@ draw_velocity:
 	jl neg_vert
 	; draw positive velocity indicator vertical
 	imul cx, 5
-	mov bx, 320
+	mov bx, 320 ;len of screen is 320
 	imul bx, cx
-	sub di, bx
+	sub di, bx ;di has to be negatively offset so we can draw down
 	jmp draw_vert_vel
 	neg_vert: ; draw negative velocity indicator vertical
 	imul cx, -5
@@ -172,9 +180,12 @@ draw_velocity:
     jmp skip_inc_bc_ball_still
 
 ball_is_moving:
-    inc dx
+    inc dx ;if the ball is moving inc the timer
 skip_inc_bc_ball_still:
 
+;the collision does not work 100% of the time
+;because of the way the corners overlap, sometimes the ball flips horizontally when it should vertically
+;this has been minimized by designing levels positioned in a way that this is unlikely
 draw_ball:
 	mov cx, [bp+ball_x]
 	mov bx, [bp+ball_y]
@@ -203,18 +214,18 @@ no_collision: ;if no collision draw the ball
 
 slow_ball:
 	cmp dx, 105
-	jle slow_ball_end
+	jle slow_ball_end ;if not 105 delays, proceed
     cmp word [bp+strokes], 3
-    jge start
-    jmp reset
+    jge start ;reset ball position / velocity if tm strokes
+    jmp reset ;otherwise just reset velocity 
     slow_ball_end:
 	
 delay:
-	mov cx, [0x046c]
-    inc cx
+	mov cx, [0x046c] ;get timer thing
+    inc cx ;add 1
     delay_loop:
-	cmp [0x046c], cx
-	jb delay_loop
+	cmp [0x046c], cx ;wait for timer thing to have gone up by one
+	jb delay_loop 
 	
 jmp main_loop
 
@@ -267,15 +278,15 @@ points:
 	dw 10*320+30,10*320+35,10*320+75,50*320+115,10*320+30,10*320+200,30*320+243
 
 lens:
-    db 120,140,130,40,0,40,108,140,142,0
-    db 250,180,0,180,250,0,0,140,130,0,130,140,0,60,90,0
-    db 90,140,80,0,40,50,140,205,0,85,180,0,140,0,0,160
+    db 120,140,130,40,0,40,108,140,142,0 ;lvl 0
+    db 250,180,0,180,250,0,0,140,130,0,130,140,0,60,90,0 ;lvl 1
+    db 90,140,80,0,40,50,140,205,0,85,180,0,140,0,0,160 ;lvl 2
 
 len_offsets: 
     db 0,10,26
 
-point_offsets:
-    db 0,2,8,14
+point_offsets: ;offsets are multiple of 2, bc points are words
+    db 0,2,8,14 
 
 times 510-($-$$) db 0
 dw 0xAA55
