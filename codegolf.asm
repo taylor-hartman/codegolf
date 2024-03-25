@@ -24,7 +24,7 @@ cbw ;mov ah, 0
 mov al, 0x13
 int 0x10
 
-mov word [bp+level], -1 ;level is inc-ed to 0 directly after
+mov word [bp+level], 0 ;level is inc-ed to 0 directly after
 
 level_start:
     inc word [bp+level]
@@ -202,7 +202,7 @@ no_collision: ;if no collision draw the ball
     end_draw_ball:
 
 slow_ball:
-	cmp dx, 100
+	cmp dx, 105
 	jle slow_ball_end
     cmp word [bp+strokes], 3
     jge start
